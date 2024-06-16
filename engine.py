@@ -109,6 +109,9 @@ class NNUE:
 
 
 class TranspositionTable:
+    """Transposition Table: https://www.chessprogramming.org/Transposition_Table
+
+    Records the best move for every position"""
     def __init__(self):
         self.table = {}
 
@@ -141,6 +144,7 @@ class Movepick:
 
 class Searcher:
     def __init__(self):
+        """Initializes the searcher with board and constants"""
         self.board = chess.Board()
         self.MAX = 100000
         self.MATE = 40000
