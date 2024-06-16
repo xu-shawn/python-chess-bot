@@ -8,7 +8,9 @@ import chess
 
 # NNUE Evaluation
 class NNUE:
+    """Class to store and evaluate neural networks"""
     def __init__(self, filename: str, feature_size: int = 768, hidden_size: int = 1024):
+        """Reads in NNUE file to memory"""
         data = Path(filename).read_bytes()
         self.raw = np.frombuffer(data, dtype="<i2")
         self.ft = self.raw[: feature_size * hidden_size].reshape(
@@ -28,6 +30,7 @@ class NNUE:
         self.feature_size = feature_size
 
     def feature_index(self, piece: chess.Piece, square: chess.Square, flipped: bool):
+        """Calculates the corresponding index on the input layer of a board feature"""
         if flipped:
             side_is_black = piece.color
             square = square ^ 0x38
@@ -36,7 +39,7 @@ class NNUE:
         return square + int(piece.piece_type - 1) * 64 + (384 if side_is_black else 0)
 
     def visualize1(self, board: chess.Board, neuron_index: int = 0):
-
+        """Plots the intensity of the weights from every sqaure of the board to a specific neuron"""
         intensity = np.zeros((8, 8))
 
         for square in chess.SQUARES:
@@ -50,7 +53,7 @@ class NNUE:
         self.display(intensity)
 
     def visualize2(self, piecetype, color, neuron_index: int = 0):
-
+        """For each piece, plot the weight of that piece on each square to a specific neuron"""
         intensity = np.zeros((8, 8))
 
         for square in chess.SQUARES:
@@ -64,13 +67,14 @@ class NNUE:
         self.display(intensity)
 
     def display(self, intensity):
-
+        """Plot a 8x8 array in a square grid, colored by intensity"""
         fig, ax = plt.subplots(figsize=(2, 2))
         ax.imshow(intensity, cmap="magma", interpolation="none")
         ax.set_xticks([])
         ax.set_yticks([])
 
     def full_evaluate(self, board: chess.Board):
+        """Compute NNUE output without incremental updates"""
         accumulatorWhite = self.ftBiases.copy()
         accumulatorBlack = self.ftBiases.copy()
 
@@ -109,20 +113,23 @@ class TranspositionTable:
         self.table = {}
 
     def probe(self, board: chess.Board):
+        """Look up information from the transpositon table"""
         return self.table.get(board._transposition_key(), None)
 
     def store(self, board: chess.Board, move: chess.Move | None):
+        """Stores information to the transposition table"""
         self.table[board._transposition_key()] = move
 
 
 class Movepick:
     def __init__(self, ttMove: chess.Move, moves_list: chess.PseudoLegalMoveGenerator):
+        """Initalizes the MovePick object with ttMove and the board's legal move generator"""
         self.ttMove = ttMove
         self.moves_list = moves_list
         self.stage = 0
 
     def moves(self) -> Generator:
-
+        """Generator function that yields the next move to explore"""
         if self.ttMove != None:
             yield self.ttMove
 
@@ -141,6 +148,7 @@ class Searcher:
         self.tt = TranspositionTable()
 
     def start_search(self, depth=3, board: chess.Board = chess.Board()) -> None:
+        """Iterative deepening loop, also handles uci output"""
         self.board = board
         for i in range(1, depth + 1):
             best_value, best_move = self.search(i, 0, self.board, -self.MAX, self.MAX)
@@ -153,7 +161,7 @@ class Searcher:
     def search(
         self, depth: int, ply: int, board: chess.Board, alpha, beta
     ) -> tuple[int, chess.Move | None]:
-
+        """Main search, utilitzes fail-soft alpah-beta pruning inside a negamax framework"""
         if depth <= 0:
             return self.eval.full_evaluate(self.board), None
             # return self.qsearch(ply, self.board, alpha, beta), None
@@ -191,7 +199,7 @@ class Searcher:
         return best_value, best_move
 
     def qsearch(self, ply, board: chess.Board, alpha, beta) -> int:
-
+        """Quiescient search, the idea is to analyze all captures before returning the evaluation to maintain search stability"""
         best_value: int = -self.MAX
         move_count = 0
 
@@ -229,10 +237,12 @@ class Searcher:
 
 class UCI:
     def __init__(self):
+        """Initialize board and searcher"""
         self.board = chess.Board()
         self.searcher = Searcher()
 
     def receive(self) -> bool:
+        """Main UCI function, handles one line of command at a time"""
         cmd_input = input()
         if not cmd_input:
             return True
@@ -265,6 +275,7 @@ class UCI:
         return True
 
     def loop(self) -> None:
+        """Continuously receive UCI communication from input"""
         while self.receive():
             pass
 
