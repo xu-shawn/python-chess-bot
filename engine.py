@@ -1,4 +1,3 @@
-#!/Users/shawn/Documents/development/lichess-bot-python-final-project/venv/bin/python
 from collections.abc import Generator
 from pathlib import Path
 import numpy as np
