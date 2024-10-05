@@ -4,6 +4,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import chess
 import datetime
+from sys import argv
+
+from torch.backends.cudnn import benchmark
 
 # Use for node count
 nodes: int = 0
@@ -324,6 +327,11 @@ class UCI:
 
     def receive(self) -> bool:
         """Main UCI function, handles one line of command at a time"""
+
+        if  argv[1] == "bench":
+            self.benchmark.run_benchmark()
+            return False
+
         cmd_input = input()
         if not cmd_input:
             return True
