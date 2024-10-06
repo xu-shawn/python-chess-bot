@@ -1,6 +1,7 @@
 import chess
 import datetime
 
+from networkx.algorithms.centrality import prominent_group
 from sympy.codegen.ast import continue_
 
 import consts
@@ -30,14 +31,29 @@ class Searcher:
         self.start = datetime.datetime.now()
         self.tm = Timemanager()
 
-    def start_search(self, depth=3, board: chess.Board = chess.Board()) -> None:
+    def start_search(self, depth=3, board: chess.Board = chess.Board(), has_time_limit:bool = False) -> None:
         """Iterative deepening loop, also handles uci output"""
         self.board = board
-        for i in range(1, depth + 1):
-            best_value, best_move = self.search(i, 0, self.board, -self.MAX, self.MAX)
-            print(
-                f"info depth {i} score cp {best_value} pv {best_move.uci() if best_move is not None else '(none)'}"
-            )
+
+        if has_time_limit:
+            for i in range(1, 256):
+                best_value, best_move = self.search(i, 0, self.board, -self.MAX, self.MAX)
+                self.start = datetime.datetime.now()
+                print(
+                    f"info depth {i} score cp {best_value} pv {best_move.uci() if best_move is not None else '(none)'}"
+                )
+
+                elapsed: int = int(((datetime.datetime.now() - self.start).total_seconds()) * 1000)
+                time_for_this_move = self.tm.getTimeForMove(time, increment)
+
+                if elapsed >= time_for_this_move:
+                        break
+        else:
+            for i in range(1, depth + 1):
+                best_value, best_move = self.search(i, 0, self.board, -self.MAX, self.MAX)
+                print(
+                    f"info depth {i} score cp {best_value} pv {best_move.uci() if best_move is not None else '(none)'}"
+                )
 
         print("bestmove", best_move.uci() if best_move is not None else "(none)")
 
@@ -46,14 +62,14 @@ class Searcher:
     ) -> tuple[int, chess.Move | None]:
 
         global nodes, time, increment
-        """Main search, utilitzes fail-soft alpah-beta pruning inside a negamax framework"""
+        """Main search, utilities fail-soft alpah-beta pruning inside a negamax framework"""
         nodes += 1
 
-        """duration = datetime.datetime.now() - start_time
-        elapsed = int(duration.total_seconds() * 1000)"""
+        elapsed: int = int(((datetime.datetime.now() - self.start).total_seconds()) * 1000)
+        time_for_this_move = self.tm.getTimeForMove(time, increment)
 
-        if time != -40000 and int((datetime.datetime.now() - self.start).total_seconds() * 1000 >= self.tm.getTimeForMove(time, increment)):
-            return beta, None
+        if time != -40000 and elapsed >= time_for_this_move:
+            return 0, None
 
         if depth <= 0:
             return self.eval.full_evaluate(self.board), None
@@ -183,7 +199,7 @@ class UCI:
             return True
         args = cmd_input.split()
 
-        global time, increment
+        global time, increment, nodes
 
         match args[0]:
             case "isready":
@@ -208,6 +224,8 @@ class UCI:
                         self.board.push(chess.Move.from_uci(move))
             case "go":
 
+                nodes = 0
+
                 if len(args) > 8:
                     if args[1] == "wtime":
                         time = int(args[2])
@@ -222,10 +240,12 @@ class UCI:
                         increment = int(args[8])
 
                     print("The wtime is" + str(time))
-                    self.searcher.start_search(depth=256, board=self.board)
+                    self.searcher.start_search(board=self.board, has_time_limit=True)
                     return True
-                else:
-                    self.searcher.start_search(board=self.board)
+
+                if args[1] == "depth":
+                    self.searcher.start_search(board=self.board, depth=int(args[2]))
+
             case "bench":
                 self.benchmark.run_benchmark()
 
