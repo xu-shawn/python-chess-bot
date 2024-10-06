@@ -5,3 +5,11 @@
 .idea/misc.xml
 .idea/inspectionProfiles/profiles_settings.xml
 *.pyc
+*.toc
+*.spec
+*.exe
+*.html
+*.txt
+*.pkg
+*.pyz
+*.zip
