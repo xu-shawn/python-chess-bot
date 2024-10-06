@@ -1,9 +1,5 @@
 import chess
 import datetime
-
-from networkx.algorithms.centrality import prominent_group
-from sympy.codegen.ast import continue_
-
 import consts
 
 from sys import argv
